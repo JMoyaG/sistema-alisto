@@ -231,3 +231,11 @@
 .producto-result-btn:hover {
   background: #ecfdf5;
 }
+.logout-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}

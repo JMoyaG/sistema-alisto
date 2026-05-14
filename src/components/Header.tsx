@@ -45,6 +45,16 @@ function Header({ vista, setVista }: Props) {
           <Map size={16} />
           Planeación de Rutas
         </button>
+        <button
+        className="nav-btn logout-btn"
+         onClick={() => {
+          localStorage.removeItem("alisto-user");
+          sessionStorage.removeItem("alisto-user");
+          window.location.href = "/";
+  }}
+>
+  Salir
+</button>
       </div>
     </header>
   );
