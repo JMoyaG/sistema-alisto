@@ -213,15 +213,20 @@
 
 .login-right {
   position: relative;
-  background-image: url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1600&auto=format&fit=crop");
+  background-image: url("/image(410).png");
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 .login-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 54, 36, .76);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 45, 28, 0.58),
+    rgba(0, 45, 28, 0.48)
+  );
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -235,6 +240,10 @@
   align-items: center;
   gap: 28px;
   color: #fff;
+  background: rgba(255,255,255,0.08);
+  padding: 24px;
+  border-radius: 24px;
+  backdrop-filter: blur(8px);
 }
 
 .feature-icon {
@@ -249,16 +258,17 @@
 }
 
 .feature-title {
-  font-size: clamp(22px, 1.7vw, 26px);
-  font-weight: 900;
-  margin-bottom: 10px;
+  font-size: clamp(24px, 1.7vw, 30px);
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
 .feature-text {
   max-width: 420px;
-  font-size: clamp(16px, 1.25vw, 19px);
-  line-height: 1.55;
-  font-weight: 500;
+  font-size: clamp(17px, 1.1vw, 20px);
+  line-height: 1.7;
+  font-weight: 400;
+  color: rgba(255,255,255,0.92);
 }
 
 .login-footer {
