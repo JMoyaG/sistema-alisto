@@ -402,3 +402,36 @@ export async function obtenerOrdenes(): Promise<Orden[]> {
     })
     .filter((orden) => orden.numero);
 }
+type UsuarioAlistoSP = {
+  Usuario?: string;
+  Password?: string;
+  Activo?: boolean | string | number;
+};
+
+export async function validarUsuario(usuario: string, password: string) {
+  const respuesta = await fetch(`${API_URL}/usuarios`);
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudieron cargar los usuarios");
+  }
+
+  const json = await respuesta.json();
+
+  const usuarios: UsuarioAlistoSP[] =
+    json.usuarios || json.items || json.value || [];
+
+  return usuarios.some((u) => {
+    const activo =
+      u.Activo === true ||
+      u.Activo === 1 ||
+      String(u.Activo).toLowerCase() === "true" ||
+      String(u.Activo).toLowerCase() === "sí" ||
+      String(u.Activo).toLowerCase() === "si";
+
+    return (
+      activo &&
+      String(u.Usuario || "").trim().toLowerCase() === usuario.trim().toLowerCase() &&
+      String(u.Password || "").trim() === password.trim()
+    );
+  });
+}

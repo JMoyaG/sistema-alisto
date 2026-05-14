@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CrearOrdenModal from "./components/CrearOrdenModal";
 import Header from "./components/Header";
+import Login from "./pages/Login";
 import {
   actualizarEstadoSharePoint,
   confirmarAlistoSharePoint,
@@ -65,6 +66,11 @@ function crearNumeroOrden() {
 }
 
 function App() {
+  const [usuarioLogueado, setUsuarioLogueado] = useState(
+    localStorage.getItem("alisto-user") ||
+      sessionStorage.getItem("alisto-user")
+  );
+
   const [vista, setVista] = useState<Vista>("bodega");
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [productosCatalogo, setProductosCatalogo] = useState<Producto[]>([]);
@@ -75,6 +81,12 @@ function App() {
   const [sincronizando, setSincronizando] = useState(false);
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("alisto-user");
+    sessionStorage.removeItem("alisto-user");
+    setUsuarioLogueado(null);
+  };
 
   const cargarOrdenes = async () => {
     try {
@@ -91,7 +103,7 @@ function App() {
       setError(null);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar las órdenes desde SharePoint. Revisá que el backend esté encendido.");
+      setError("No se pudieron cargar las órdenes desde SharePoint.");
     } finally {
       setCargando(false);
     }
@@ -108,32 +120,39 @@ function App() {
   };
 
   const actualizarSql = async () => {
-  try {
-    setSincronizando(true);
-    setError(null);
+    try {
+      setSincronizando(true);
+      setError(null);
 
-    await sincronizarSql();
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+      await sincronizarSql();
+      await new Promise((resolve) => setTimeout(resolve, 10000));
 
-    await cargarOrdenes();
-    await cargarProductos();
-    setError(null);
-    setOrdenSeleccionada(null);
-    setSucursalSeleccionada(null);
-    setVista("bodega");
-  } catch (err) {
-    console.error(err);
-    setError("No se pudo actualizar desde SQL. Revisá la consola del backend.");
-  } finally {
-    setSincronizando(false);
-  }
-};
+      await cargarOrdenes();
+      await cargarProductos();
+
+      setError(null);
+      setOrdenSeleccionada(null);
+      setSucursalSeleccionada(null);
+      setVista("bodega");
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo actualizar desde SQL.");
+    } finally {
+      setSincronizando(false);
+    }
+  };
 
   useEffect(() => {
+    if (!usuarioLogueado) return;
+
     localStorage.removeItem("sistema-alisto-ordenes-locales");
     cargarOrdenes();
     cargarProductos();
-  }, []);
+  }, [usuarioLogueado]);
+
+  if (!usuarioLogueado) {
+    return <Login onLogin={(usuario) => setUsuarioLogueado(usuario)} />;
+  }
 
   const ordenesBodega = ordenes.filter(
     (o) =>
@@ -195,7 +214,7 @@ function App() {
       setModalCrearAbierto(false);
     } catch (err) {
       console.error(err);
-      setError("No se pudo crear la orden en SharePoint. Revisá la consola del backend.");
+      setError("No se pudo crear la orden en SharePoint.");
     } finally {
       setGuardandoOrden(false);
     }
@@ -249,6 +268,24 @@ function App() {
 
   return (
     <div className="app-shell">
+      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
+        <button
+          onClick={cerrarSesion}
+          style={{
+            background: "#dc2626",
+            color: "white",
+            border: 0,
+            borderRadius: 12,
+            padding: "10px 16px",
+            fontWeight: 800,
+            cursor: "pointer",
+            boxShadow: "0 10px 20px rgba(0,0,0,.15)",
+          }}
+        >
+          Salir
+        </button>
+      </div>
+
       <Header vista={vista} setVista={cambiarVista} />
 
       <CrearOrdenModal

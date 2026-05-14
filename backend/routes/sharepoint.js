@@ -571,7 +571,7 @@ router.post("/sync-sql", async (req, res) => {
           ON D.idBodegaDestino = BD.idBodega
       LEFT JOIN inBodegaCat BDcat
           ON BD.idBodegaCat = BDcat.idBodegaCat
-      WHERE DP.Codigo IS NOT NULL  and CAST(D.FechaIngreso AS DATE) >= '2026-05-13' and ME.Descripcion = 'Aprobado' and BOcat.Descripcion ='CEDI GRUPO SURCO'
+      WHERE DP.Codigo IS NOT NULL  and CAST(D.FechaIngreso AS DATE) >= '2026-05-14' and ME.Descripcion = 'Aprobado' and BOcat.Descripcion ='CEDI GRUPO SURCO'
       ORDER BY D.idDocEntradaSalida DESC
     `);
 
@@ -1074,6 +1074,27 @@ router.get("/ruta-detalles", async (req, res) => {
     res.status(500).json({ ok: false, error: error.message });
   }
 });
+router.get("/usuarios", async (req, res) => {
+  try {
+    const data = await getItems("UsuariosAlisto");
 
+    const usuarios = data.value.map((item) => ({
+      spId: item.id,
+      ...item.fields,
+    }));
+
+    res.json({
+      ok: true,
+      usuarios,
+    });
+  } catch (error) {
+    console.error("Error usuarios:", error.message);
+
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
+  }
+});
 
 module.exports = router;
