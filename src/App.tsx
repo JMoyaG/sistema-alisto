@@ -113,6 +113,8 @@ function App() {
     setError(null);
 
     await sincronizarSql();
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     await cargarOrdenes();
     await cargarProductos();
 
