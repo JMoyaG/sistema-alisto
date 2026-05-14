@@ -1,6 +1,7 @@
 import type { Estado, Orden, Producto } from "../types/orden";
 
-const API_URL = "http://172.22.11.78:3001/api/sharepoint";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://172.22.11.78:3001/api/sharepoint";
 
 type OrdenSP = {
   spId?: string | number;
@@ -44,6 +45,8 @@ type ProductoSP = {
   Activo?: boolean | string | number;
 };
 
+const ESTADO_PREPARACION_INICIAL: Producto["estadoPreparacion"] = "";
+
 function limpiarOrden(valor?: string | number) {
   return String(valor || "").replace("ORD-", "").trim();
 }
@@ -76,7 +79,11 @@ function detallePerteneceAOrden(detalle: DetalleSP, orden: OrdenSP) {
   return detalleIdOrden === ordenNumero || detalleLookupId === ordenSpId;
 }
 
-function mapearProducto(p: DetalleSP, faltantes: FaltanteSP[] = [], idOrden?: string): Producto {
+function mapearProducto(
+  p: DetalleSP,
+  faltantes: FaltanteSP[] = [],
+  idOrden?: string
+): Producto {
   const cantidad = Number(p.Cantidad || 0);
   const codigo = String(p.Codigo || "");
   const nombre = String(p.Producto || "Producto sin nombre");
@@ -84,7 +91,8 @@ function mapearProducto(p: DetalleSP, faltantes: FaltanteSP[] = [], idOrden?: st
   const faltante = faltantes.find(
     (f) =>
       limpiarOrden(f.IdOrden) === limpiarOrden(idOrden) &&
-      String(f.Producto || "").trim().toLowerCase() === nombre.trim().toLowerCase()
+      String(f.Producto || "").trim().toLowerCase() ===
+        nombre.trim().toLowerCase()
   );
 
   const cantidadFaltante = Number(faltante?.CantidadFaltante || 0);
@@ -94,33 +102,15 @@ function mapearProducto(p: DetalleSP, faltantes: FaltanteSP[] = [], idOrden?: st
     descripcion: nombre,
     codigo,
     cantidad,
-    cantidadOriginal: Number(p.CantidadOriginal || cantidad + cantidadFaltante || cantidad),
+    cantidadOriginal: Number(
+      p.CantidadOriginal || cantidad + cantidadFaltante || cantidad
+    ),
     pesoUnitarioKg: Number(p.PesoUnitarioKg || 0),
     pesoTotalKg: Number(p.PesoTotalKg || 0),
     unidadMedida: String(p.Medida || "UND"),
     faltante: false,
     cantidadFaltante,
-    estadoPreparacion: "",
-  };
-}
-
-function mapearProductoCatalogo(p: ProductoSP): Producto {
-  const nombre = String(p.Producto || "Producto sin nombre");
-  const codigo = String(p.Codigo || "");
-  const pesoUnitarioKg = Number(p.PesoUnitarioKg || 0);
-
-  return {
-    nombre,
-    descripcion: nombre,
-    codigo,
-    cantidad: 1,
-    cantidadOriginal: 1,
-    pesoUnitarioKg,
-    pesoTotalKg: pesoUnitarioKg,
-    unidadMedida: String(p.UnidadMedida || "UND"),
-    faltante: false,
-    cantidadFaltante: 0,
-    estadoPreparacion: "",
+    estadoPreparacion: ESTADO_PREPARACION_INICIAL,
   };
 }
 
@@ -152,7 +142,9 @@ export async function sincronizarProductosSql() {
   });
 
   if (!respuesta.ok) {
-    throw new Error(`No se pudo sincronizar productos: ${await respuesta.text()}`);
+    throw new Error(
+      `No se pudo sincronizar productos: ${await respuesta.text()}`
+    );
   }
 
   return respuesta.json();
@@ -167,38 +159,33 @@ export async function obtenerProductosCatalogo(): Promise<Producto[]> {
 
   const json = await respuesta.json();
 
-  console.log("PRODUCTOS SP:", json);
-
   const productos: ProductoSP[] =
-    json.productos ||
-    json.items ||
-    json.value ||
-    [];
+    json.productos || json.items || json.value || [];
 
   return productos
     .filter((p) => {
-      return (
-        String(p.Codigo || "").trim() ||
-        String(p.Producto || "").trim()
-      );
+      return String(p.Codigo || "").trim() || String(p.Producto || "").trim();
     })
-    .map((p) => ({
-      nombre: String(p.Producto || "Producto sin nombre"),
-      descripcion: String(p.Producto || "Producto sin nombre"),
-      codigo: String(p.Codigo || ""),
-      cantidad: 1,
-      cantidadOriginal: 1,
-      pesoUnitarioKg: Number(p.PesoUnitarioKg || 0),
-      pesoTotalKg: Number(p.PesoUnitarioKg || 0),
-      unidadMedida: String(p.UnidadMedida || "UND"),
-      faltante: false,
-      cantidadFaltante: 0,
-      estadoPreparacion: "",
-    }))
+    .map<Producto>((p) => {
+      const nombre = String(p.Producto || "Producto sin nombre");
+      const pesoUnitarioKg = Number(p.PesoUnitarioKg || 0);
+
+      return {
+        nombre,
+        descripcion: nombre,
+        codigo: String(p.Codigo || ""),
+        cantidad: 1,
+        cantidadOriginal: 1,
+        pesoUnitarioKg,
+        pesoTotalKg: pesoUnitarioKg,
+        unidadMedida: String(p.UnidadMedida || "UND"),
+        faltante: false,
+        cantidadFaltante: 0,
+        estadoPreparacion: ESTADO_PREPARACION_INICIAL,
+      };
+    })
     .sort((a, b) =>
-      `${a.codigo} ${a.nombre}`.localeCompare(
-        `${b.codigo} ${b.nombre}`
-      )
+      `${a.codigo} ${a.nombre}`.localeCompare(`${b.codigo} ${b.nombre}`)
     );
 }
 
@@ -281,7 +268,10 @@ export async function actualizarEstadoSharePoint(
   return leerJson(respuesta);
 }
 
-export async function confirmarAlistoSharePoint(idOrden: string, productos: Producto[]) {
+export async function confirmarAlistoSharePoint(
+  idOrden: string,
+  productos: Producto[]
+) {
   const respuesta = await fetch(`${API_URL}/alisto`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -300,7 +290,12 @@ export async function guardarRutaSharePoint(payload: {
   camion: string;
   chofer: string;
   confirmada: boolean;
-  ordenes: Array<{ orden: string; sucursal: string; posicion: number; camion: string }>;
+  ordenes: Array<{
+    orden: string;
+    sucursal: string;
+    posicion: number;
+    camion: string;
+  }>;
 }) {
   const rutaRes = await fetch(`${API_URL}/ruta`, {
     method: "POST",
@@ -326,7 +321,9 @@ export async function guardarRutaSharePoint(payload: {
     });
 
     if (!detalleRes.ok) {
-      throw new Error(`No se pudo guardar detalle ruta: ${await detalleRes.text()}`);
+      throw new Error(
+        `No se pudo guardar detalle ruta: ${await detalleRes.text()}`
+      );
     }
   }
 
@@ -350,17 +347,19 @@ export async function obtenerOrdenes(): Promise<Orden[]> {
 
   const ordenesJson = await ordenesRes.json();
   const detallesJson = await detallesRes.json();
-  const faltantesJson = faltantesRes.ok ? await faltantesRes.json() : { faltantes: [] };
+  const faltantesJson = faltantesRes.ok
+    ? await faltantesRes.json()
+    : { faltantes: [] };
 
   const ordenesSP: OrdenSP[] = ordenesJson.ordenes || [];
   const detallesSP: DetalleSP[] = detallesJson.detalles || [];
   const faltantesSP: FaltanteSP[] = faltantesJson.faltantes || [];
 
   return ordenesSP
-    .map((orden) => {
+    .map<Orden>((orden) => {
       const numero = numeroOrden(orden);
 
-      const productos = detallesSP
+      const productos: Producto[] = detallesSP
         .filter((detalle) => detallePerteneceAOrden(detalle, orden))
         .map((detalle) => mapearProducto(detalle, faltantesSP, numero));
 

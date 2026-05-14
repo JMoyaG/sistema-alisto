@@ -86,25 +86,37 @@ function OrdenDetalle({
   };
 
   const confirmarListo = () => {
-    const productosFinales = orden.productos.map((producto) => {
-      const cantidadOriginal = Number(producto.cantidadOriginal ?? producto.cantidad);
-      const faltante = producto.faltante ? Number(producto.cantidadFaltante || 0) : 0;
-      const faltanteFinal = Math.min(Math.max(faltante, 0), cantidadOriginal);
-      const cantidadFinal = Math.max(cantidadOriginal - faltanteFinal, 0);
+  const productosFinales: Producto[] = orden.productos.map((producto) => {
+    const cantidadOriginal = Number(producto.cantidadOriginal ?? producto.cantidad);
 
-      return {
-        ...producto,
-        cantidadOriginal,
-        cantidad: cantidadFinal,
-        faltante: false,
-        cantidadFaltante: faltanteFinal,
-        estadoPreparacion: "Listo",
-      };
-    });
+    const faltante = producto.faltante
+      ? Number(producto.cantidadFaltante || 0)
+      : 0;
 
-    actualizarProductosOrden(orden.numero, productosFinales);
-    confirmarAlisto(orden.numero, productosFinales);
-  };
+    const faltanteFinal = Math.min(
+      Math.max(faltante, 0),
+      cantidadOriginal
+    );
+
+    const cantidadFinal = Math.max(
+      cantidadOriginal - faltanteFinal,
+      0
+    );
+
+    return {
+      ...producto,
+      cantidadOriginal,
+      cantidad: cantidadFinal,
+      faltante: false,
+      cantidadFaltante: faltanteFinal,
+      estadoPreparacion: "Listo" as "Listo",
+    };
+  });
+
+  actualizarProductosOrden(orden.numero, productosFinales);
+
+  confirmarAlisto(orden.numero, productosFinales);
+};
 
   return (
     <main className="page">
