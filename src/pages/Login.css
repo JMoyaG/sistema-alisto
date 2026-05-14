@@ -213,9 +213,11 @@
 
 .login-right {
   position: relative;
-  background-image: url("https://chatgpt.com/backend-api/estuary/content?id=file_00000000f1f471fb8625ae8c810a3806&ts=494108&p=fs&cid=1&sig=d917bff134f4791cb33c5180582035abadc4cb0ea2937383e1c4a8e14d503165&v=0");
+  overflow: hidden;
+  background-image: url("/login-bg.png");
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
 .login-overlay {
