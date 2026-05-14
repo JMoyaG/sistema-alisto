@@ -232,13 +232,15 @@
   background: #ecfdf5;
 }
 .logout-btn {
-  background: #ef4444;
-  color: white;
+  background: #ef4444 !important;
+  color: #fff !important;
+  margin-left: 6px;
 }
 
 .logout-btn:hover {
-  background: #dc2626;
+  background: #dc2626 !important;
 }
+
 .logout-btn {
   background: #ef4444 !important;
   color: white !important;
