@@ -19,6 +19,7 @@ export default function Login() {
     }
 
     localStorage.setItem("alisto-user", usuario.trim());
+    window.location.href = "/";
   };
 
   return (
