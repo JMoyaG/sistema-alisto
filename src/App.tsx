@@ -108,22 +108,24 @@ function App() {
   };
 
   const actualizarSql = async () => {
-    try {
-      setSincronizando(true);
-      setError(null);
-      await sincronizarSql();
-      await cargarOrdenes();
-      await cargarProductos();
-      setOrdenSeleccionada(null);
-      setSucursalSeleccionada(null);
-      setVista("bodega");
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo actualizar desde SQL. Revisá la consola del backend.");
-    } finally {
-      setSincronizando(false);
-    }
-  };
+  try {
+    setSincronizando(true);
+    setError(null);
+
+    await sincronizarSql();
+    await cargarOrdenes();
+    await cargarProductos();
+
+    setOrdenSeleccionada(null);
+    setSucursalSeleccionada(null);
+    setVista("bodega");
+  } catch (err) {
+    console.error(err);
+    setError("No se pudo actualizar desde SQL. Revisá la consola del backend.");
+  } finally {
+    setSincronizando(false);
+  }
+};
 
   useEffect(() => {
     localStorage.removeItem("sistema-alisto-ordenes-locales");
