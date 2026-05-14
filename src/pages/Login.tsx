@@ -1,14 +1,4 @@
-import {
-  Eye,
-  PackageCheck,
-  BarChart3,
-  ClipboardList,
-  Boxes,
-  User,
-  Lock,
-  LogIn,
-} from "lucide-react";
-
+import { Eye, PackageCheck, User, Lock, LogIn } from "lucide-react";
 import "./Login.css";
 import { useState } from "react";
 import { validarUsuario } from "../services/ordenesApi";
@@ -61,7 +51,6 @@ export default function Login({ onLogin }: Props) {
           <form onSubmit={iniciarSesion}>
             <div className="login-form-group">
               <label>Usuario</label>
-
               <div className="login-input-wrapper">
                 <User className="login-input-icon" size={24} />
                 <input
@@ -75,7 +64,6 @@ export default function Login({ onLogin }: Props) {
 
             <div className="login-form-group">
               <label>Contraseña</label>
-
               <div className="login-input-wrapper">
                 <Lock className="login-input-icon" size={24} />
                 <input
@@ -85,7 +73,6 @@ export default function Login({ onLogin }: Props) {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Ingresa tu contraseña"
                 />
-
                 <Eye
                   className="login-eye"
                   size={24}
@@ -110,45 +97,7 @@ export default function Login({ onLogin }: Props) {
           </form>
         </div>
 
-        <div className="login-right">
-          <div className="login-overlay">
-            <div className="feature-row">
-              <div className="feature-icon">
-                <Boxes size={34} />
-              </div>
-              <div>
-                <div className="feature-title">Gestión eficiente</div>
-                <div className="feature-text">
-                  Administra pedidos y entregas de manera eficiente.
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-row">
-              <div className="feature-icon">
-                <ClipboardList size={34} />
-              </div>
-              <div>
-                <div className="feature-title">Control en tiempo real</div>
-                <div className="feature-text">
-                  Monitorea el estado de tus pedidos en tiempo real.
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-row">
-              <div className="feature-icon">
-                <BarChart3 size={34} />
-              </div>
-              <div>
-                <div className="feature-title">Reportes y estadísticas</div>
-                <div className="feature-text">
-                  Obtén reportes detallados y estadísticas de tu operación.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div className="login-right" />
       </div>
 
       <div className="login-footer">
