@@ -1168,3 +1168,12 @@ body {
     justify-content: flex-end;
   }
 }
+.logout-btn {
+  background: #ef4444 !important;
+  color: #fff !important;
+  margin-left: 6px;
+}
+
+.logout-btn:hover {
+  background: #dc2626 !important;
+}
