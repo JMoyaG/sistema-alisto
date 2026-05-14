@@ -117,7 +117,7 @@ function App() {
 
     await cargarOrdenes();
     await cargarProductos();
-
+    setError(null);
     setOrdenSeleccionada(null);
     setSucursalSeleccionada(null);
     setVista("bodega");

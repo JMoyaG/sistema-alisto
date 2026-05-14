@@ -146,7 +146,17 @@ export async function sincronizarSql() {
     throw new Error(`No se pudo ejecutar Power Automate: ${await respuesta.text()}`);
   }
 
-  return respuesta.json();
+  const texto = await respuesta.text();
+
+  if (!texto) {
+    return { ok: true };
+  }
+
+  try {
+    return JSON.parse(texto);
+  } catch {
+    return { ok: true, respuesta: texto };
+  }
 }
 
 export async function sincronizarProductosSql() {
