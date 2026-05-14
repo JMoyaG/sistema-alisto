@@ -239,3 +239,23 @@
 .logout-btn:hover {
   background: #dc2626;
 }
+.logout-btn {
+  background: #ef4444 !important;
+  color: white !important;
+  border: none;
+  border-radius: 10px;
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  background: #dc2626 !important;
+  transform: translateY(-1px);
+}
