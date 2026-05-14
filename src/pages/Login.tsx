@@ -1,4 +1,4 @@
-import { Lock, PackageCheck, Eye } from "lucide-react";
+import { PackageCheck, Eye } from "lucide-react";
 import "./Login.css";
 import { useState } from "react";
 import { validarUsuario } from "../services/ordenesApi";
