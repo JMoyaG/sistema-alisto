@@ -214,7 +214,7 @@
 .login-right {
   position: relative;
   overflow: hidden;
-  background-image: url("/login-bg.png");
+  background-image: url("/image.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -296,5 +296,10 @@
 
   .login-footer {
     display: none;
+  }
+}
+@media (min-width: 1200px) {
+  .login-container {
+    transform: scale(0.92);
   }
 }
