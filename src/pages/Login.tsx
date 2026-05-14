@@ -3,11 +3,7 @@ import "./Login.css";
 import { useState } from "react";
 import { validarUsuario } from "../services/ordenesApi";
 
-type Props = {
-  onLogin: (usuario: string) => void;
-};
-
-export default function Login({ onLogin }: Props) {
+export default function Login() {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
@@ -22,8 +18,7 @@ export default function Login({ onLogin }: Props) {
       return;
     }
 
-    localStorage.setItem("alisto-user", usuario);
-    onLogin(usuario);
+    localStorage.setItem("alisto-user", usuario.trim());
   };
 
   return (

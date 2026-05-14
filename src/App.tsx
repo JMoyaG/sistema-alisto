@@ -66,10 +66,7 @@ function crearNumeroOrden() {
 }
 
 function App() {
-  const [usuarioLogueado, setUsuarioLogueado] = useState(
-    localStorage.getItem("alisto-user") ||
-      sessionStorage.getItem("alisto-user")
-  );
+  const usuarioLogueado = localStorage.getItem("alisto-user");
 
   const [vista, setVista] = useState<Vista>("bodega");
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
@@ -82,11 +79,39 @@ function App() {
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cerrarSesion = () => {
-    localStorage.removeItem("alisto-user");
-    sessionStorage.removeItem("alisto-user");
-    setUsuarioLogueado(null);
-  };
+  useEffect(() => {
+    if (!usuarioLogueado) return;
+
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const cerrarPorInactividad = () => {
+      localStorage.removeItem("alisto-user");
+      sessionStorage.removeItem("alisto-user");
+      window.location.href = "/";
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(cerrarPorInactividad, 10 * 60 * 1000);
+    };
+
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keydown", resetTimer);
+    window.addEventListener("click", resetTimer);
+    window.addEventListener("scroll", resetTimer);
+    window.addEventListener("touchstart", resetTimer);
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      window.removeEventListener("scroll", resetTimer);
+      window.removeEventListener("touchstart", resetTimer);
+    };
+  }, [usuarioLogueado]);
 
   const cargarOrdenes = async () => {
     try {
@@ -151,7 +176,7 @@ function App() {
   }, [usuarioLogueado]);
 
   if (!usuarioLogueado) {
-    return <Login onLogin={(usuario) => setUsuarioLogueado(usuario)} />;
+    return <Login />;
   }
 
   const ordenesBodega = ordenes.filter(
@@ -268,32 +293,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      <div
-  style={{
-    position: "fixed",
-    top: 14,
-    right: 14,
-    zIndex: 100,
-  }}
->
-  <button
-    onClick={cerrarSesion}
-    style={{
-      background: "rgba(220, 38, 38, 0.95)",
-      color: "white",
-      border: "none",
-      borderRadius: 999,
-      padding: "8px 14px",
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: "pointer",
-      boxShadow: "0 6px 14px rgba(0,0,0,.18)",
-    }}
-  >
-    Salir
-  </button>
-</div>
-
       <Header vista={vista} setVista={cambiarVista} />
 
       <CrearOrdenModal
