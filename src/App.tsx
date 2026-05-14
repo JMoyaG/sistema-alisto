@@ -111,7 +111,7 @@ function App() {
     try {
       setSincronizando(true);
       setError(null);
-      await sincronizarSql(50);
+      await sincronizarSql();
       await cargarOrdenes();
       await cargarProductos();
       setOrdenSeleccionada(null);
