@@ -268,23 +268,31 @@ function App() {
 
   return (
     <div className="app-shell">
-      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 50 }}>
-        <button
-          onClick={cerrarSesion}
-          style={{
-            background: "#dc2626",
-            color: "white",
-            border: 0,
-            borderRadius: 12,
-            padding: "10px 16px",
-            fontWeight: 800,
-            cursor: "pointer",
-            boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-          }}
-        >
-          Salir
-        </button>
-      </div>
+      <div
+  style={{
+    position: "fixed",
+    top: 14,
+    right: 14,
+    zIndex: 100,
+  }}
+>
+  <button
+    onClick={cerrarSesion}
+    style={{
+      background: "rgba(220, 38, 38, 0.95)",
+      color: "white",
+      border: "none",
+      borderRadius: 999,
+      padding: "8px 14px",
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: "pointer",
+      boxShadow: "0 6px 14px rgba(0,0,0,.18)",
+    }}
+  >
+    Salir
+  </button>
+</div>
 
       <Header vista={vista} setVista={cambiarVista} />
 
