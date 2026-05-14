@@ -82,7 +82,7 @@ export default function Login() {
                 <span>Recordarme</span>
               </label>
 
-              <span className="login-forgot">¿Olvidaste tu contraseña?</span>
+              
             </div>
 
             <button className="login-button" type="submit">
