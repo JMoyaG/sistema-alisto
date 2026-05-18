@@ -46,7 +46,7 @@ function Header({ vista, setVista }: Props) {
           Planeación de Rutas
         </button>
         <button
-        className="nav-btn logout-btn"
+        className="mode-btn logout-btn"
          onClick={() => {
           localStorage.removeItem("alisto-user");
           sessionStorage.removeItem("alisto-user");

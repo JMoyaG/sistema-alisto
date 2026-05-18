@@ -70,7 +70,7 @@ router.get("/", async (req, res) => {
           ON D.idBodegaDestino = BD.idBodega
       LEFT JOIN inBodegaCat BDcat
           ON BD.idBodegaCat = BDcat.idBodegaCat
-      WHERE DP.Codigo IS NOT NULL  and CAST(D.FechaIngreso AS DATE) >= '2026-05-08' and ME.Descripcion = 'Procesado' and BOcat.Descripcion ='CEDI GRUPO SURCO'
+      WHERE DP.Codigo IS NOT NULL  and CAST(D.FechaIngreso AS DATE) >= '2026-05-08' and ME.Descripcion = 'Aprobado' and BOcat.Descripcion ='CEDI GRUPO SURCO'
       ORDER BY D.idDocEntradaSalida DESC
     `);
 
