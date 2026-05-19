@@ -288,7 +288,8 @@ function buildDetalleFields(orden, producto, ordenSpItemId) {
 
   return {
     Título: title,
-    IdOrden: Number(ordenSpItemId) || String(orden.id),
+    IdOrden: String(orden.id),
+    IdOrdenLookupId: Number(ordenSpItemId),
     Producto: producto.producto,
     Codigo: producto.codigo,
     Cantidad: producto.cantidad,
@@ -309,12 +310,13 @@ async function createDetalleSeguro(orden, producto, ordenSpItemId) {
   }
 
   const mediumFields = {
-    Título: `${orden.id} - ${producto.codigo}`,
-    IdOrden: Number(ordenSpItemId) || String(orden.id),
-    Producto: producto.producto,
-    Codigo: producto.codigo,
-    Cantidad: producto.cantidad,
-  };
+  Título: `${orden.id} - ${producto.codigo}`,
+  IdOrden: String(orden.id),
+  IdOrdenLookupId: Number(ordenSpItemId),
+  Producto: producto.producto,
+  Codigo: producto.codigo,
+  Cantidad: producto.cantidad,
+};
 
   try {
     return await createListItem("DetalleOrden", mediumFields);
