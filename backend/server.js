@@ -20,7 +20,7 @@ app.use("/api/sharepoint", sharepointRoutes);
 // Sync automático cada 1 minuto
 setInterval(async () => {
   try {
-    console.log("Sincronizando SQL automáticamente...");
+    console.log("⏰ Ejecutando sync automático:", new Date());
 
     const axios = require("axios");
 
