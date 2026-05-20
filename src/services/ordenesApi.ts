@@ -410,6 +410,8 @@ type UsuarioAlistoSP = {
 };
 
 export async function validarUsuario(usuario: string, password: string) {
+  console.log("API_URL LOGIN:", API_URL);
+console.log("Usuario digitado:", usuario);
   const respuesta = await fetch(`${API_URL}/usuarios`);
 
   if (!respuesta.ok) {
@@ -420,6 +422,12 @@ export async function validarUsuario(usuario: string, password: string) {
 
   const usuarios: UsuarioAlistoSP[] =
     json.usuarios || json.items || json.value || [];
+    console.log("Usuarios cargados:", usuarios.map(u => ({
+  Usuario: u.Usuario,
+  Password: u.Password,
+  Activo: u.Activo,
+})));
+    
 
   return usuarios.some((u) => {
     const activo =
