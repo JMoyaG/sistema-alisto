@@ -17,6 +17,23 @@ app.get("/", (req, res) => {
 app.use("/api/ordenes", ordenesRoutes);
 app.use("/api/sharepoint", sharepointRoutes);
 
+// Sync automático cada 1 minuto
+setInterval(async () => {
+  try {
+    console.log("Sincronizando SQL automáticamente...");
+
+    const axios = require("axios");
+
+    await axios.post(
+      "http://localhost:3001/api/sharepoint/sync-sql"
+    );
+
+    console.log("Sync completado");
+  } catch (error) {
+    console.error("Error en sync automático:", error.message);
+  }
+}, 60000);
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, "0.0.0.0", () => {
