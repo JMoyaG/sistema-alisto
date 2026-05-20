@@ -32,7 +32,7 @@ setInterval(async () => {
   } catch (error) {
     console.error("Error en sync automático:", error.message);
   }
-}, 60000);
+}, 10000);
 
 const PORT = process.env.PORT || 3001;
 
