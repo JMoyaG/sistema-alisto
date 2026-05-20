@@ -1,4 +1,3 @@
-import { Plus, RefreshCw } from "lucide-react";
 import BranchCard from "../components/BranchCard";
 import Resumen from "../components/Resumen";
 import type { Orden, Vista } from "../types/orden";
@@ -10,8 +9,6 @@ type Props = {
   sucursales: string[];
   abrirSucursal: (sucursal: string) => void;
   abrirCrearOrden: () => void;
-  actualizarSql: () => void;
-  sincronizando: boolean;
   cargando: boolean;
   error: string | null;
 };
@@ -26,9 +23,6 @@ function Home({
   ordenesChofer,
   sucursales,
   abrirSucursal,
-  abrirCrearOrden,
-  actualizarSql,
-  sincronizando,
   cargando,
   error,
 }: Props) {
@@ -48,13 +42,9 @@ function Home({
               : `${ordenesChofer.length} órdenes en ruta`}
           </p>
         </div>
-
-       
-        
       </div>
 
       {cargando && <div className="notice-card">Cargando órdenes desde SharePoint...</div>}
-      {sincronizando && <div className="notice-card">Sincronizando SQL → SharePoint...</div>}
       {error && <div className="error-card">{error}</div>}
 
       <div className="branch-grid">
