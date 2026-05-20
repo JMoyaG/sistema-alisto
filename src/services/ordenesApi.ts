@@ -1,7 +1,12 @@
 import type { Estado, Orden, Producto } from "../types/orden";
 
 const API_URL =
-    import.meta.env.VITE_API_URL || "http://172.22.1.7:3001/api/sharepoint";
+  import.meta.env.VITE_API_URL ||
+  "https://sistema-alisto.vercel.app/api/sharepoint";
+
+const SYNC_API_URL =
+  import.meta.env.VITE_SYNC_API_URL ||
+  "http://172.22.1.7:3001/api/sharepoint";
 
 type OrdenSP = {
   spId?: string | number;
@@ -125,7 +130,7 @@ async function leerJson(respuesta: Response) {
 }
 
 export async function sincronizarSql() {
-  const respuesta = await fetch(`${API_URL}/sync-sql`, {
+  const respuesta = await fetch(`${SYNC_API_URL}/sync-sql`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -154,6 +159,7 @@ export async function sincronizarSql() {
     return { ok: true, respuesta: texto };
   }
 }
+
 export async function sincronizarProductosSql() {
   const respuesta = await fetch(`${API_URL}/sync-productos-sql`, {
     method: "POST",
