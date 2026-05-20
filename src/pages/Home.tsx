@@ -49,25 +49,8 @@ function Home({
           </p>
         </div>
 
-        {vista === "bodega" && (
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="create-order-btn"
-              onClick={actualizarSql}
-              disabled={sincronizando || cargando}
-              title="Trae órdenes nuevas desde SQL y actualiza SharePoint"
-            >
-              <RefreshCw size={17} />
-              {sincronizando ? "Actualizando..." : "Actualizar SQL"}
-            </button>
-
-            <button type="button" className="create-order-btn" onClick={abrirCrearOrden}>
-              <Plus size={17} />
-              Crear Orden
-            </button>
-          </div>
-        )}
+       
+        
       </div>
 
       {cargando && <div className="notice-card">Cargando órdenes desde SharePoint...</div>}
