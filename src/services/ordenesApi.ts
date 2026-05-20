@@ -125,13 +125,7 @@ async function leerJson(respuesta: Response) {
 }
 
 export async function sincronizarSql() {
-  const FLOW_URL = import.meta.env.VITE_POWER_AUTOMATE_URL;
-
-  if (!FLOW_URL) {
-    throw new Error("No está configurada la URL de Power Automate");
-  }
-
-  const respuesta = await fetch(FLOW_URL, {
+  const respuesta = await fetch(`${API_URL}/sync-sql`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -143,7 +137,9 @@ export async function sincronizarSql() {
   });
 
   if (!respuesta.ok) {
-    throw new Error(`No se pudo ejecutar Power Automate: ${await respuesta.text()}`);
+    throw new Error(
+      `No se pudo sincronizar SQL: ${await respuesta.text()}`
+    );
   }
 
   const texto = await respuesta.text();
@@ -158,7 +154,6 @@ export async function sincronizarSql() {
     return { ok: true, respuesta: texto };
   }
 }
-
 export async function sincronizarProductosSql() {
   const respuesta = await fetch(`${API_URL}/sync-productos-sql`, {
     method: "POST",
