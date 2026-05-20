@@ -138,7 +138,7 @@ function OrdenDetalle({
           {orden.cliente && <p className="order-client">{orden.cliente}</p>}
         </div>
       </div>
-
+      {orden.estado !== "Pendiente de Carga" && (
       <section className="panel">
         <h3 className="panel-title">
           <Box size={18} />
@@ -249,7 +249,7 @@ function OrdenDetalle({
           })}
         </div>
       </section>
-
+)}
       <section className="panel">
         <h3 className="panel-title">Observaciones</h3>
 
@@ -259,7 +259,7 @@ function OrdenDetalle({
           className="textarea"
         />
       </section>
-
+      
       {!esChofer && orden.estado === "Pendiente" && (
         <button onClick={confirmarListo} className="action-btn action-orange">
           <CheckCircle size={18} />
