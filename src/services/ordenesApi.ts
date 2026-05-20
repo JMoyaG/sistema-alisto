@@ -2,7 +2,7 @@ import type { Estado, Orden, Producto } from "../types/orden";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "https://sistema-alisto.vercel.app/api/sharepoint";
+  "https://sistema-alisto-backend.onrender.com/api/sharepoint";
 
 const SYNC_API_URL =
   import.meta.env.VITE_SYNC_API_URL ||
