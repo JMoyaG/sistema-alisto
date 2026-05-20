@@ -268,14 +268,106 @@ function OrdenDetalle({
       )}
 
       {!esChofer && (orden.estado === "Listo" || orden.estado === "Pendiente de Carga") && (
-        <button
-          onClick={() => actualizarEstado(orden.numero, "En Camión")}
-          className="action-btn action-green"
-        >
-          <Truck size={18} />
-          Subir al Camión
-        </button>
-      )}
+  <>
+    <section className="panel">
+      <h3 className="panel-title">
+        <Truck size={18} />
+        Carga al Camión
+      </h3>
+
+      <div className="product-stack">
+        {orden.productos.map((p, index) => (
+          <div
+            key={`carga-${p.descripcion}-${index}`}
+            className="product-row product-row-full"
+          >
+            <div className="product-main">
+              <div className="product-left">
+                <div className="product-icon">
+                  <Box size={18} />
+                </div>
+
+                <div>
+                  <p className="product-name">{p.nombre}</p>
+                  <p className="product-desc">{p.descripcion}</p>
+                </div>
+              </div>
+
+              <div className="product-right">
+                <div className="product-qty-box">
+                  <p className="product-qty">{p.cantidad}</p>
+                  <p className="product-unit">unidades</p>
+                </div>
+
+                <div className="product-status-checks">
+                  <button
+                    type="button"
+                    className={`status-check ${
+                      (p as any).estadoCarga === "Subiendo"
+                        ? "status-check-on"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      const nuevoEstado =
+                        (p as any).estadoCarga === "Subiendo"
+                          ? ""
+                          : "Subiendo";
+
+                      actualizarProducto(index, {
+                        estadoCarga: nuevoEstado,
+                      } as any);
+                    }}
+                  >
+                    <span className="status-check-box">
+                      {(p as any).estadoCarga === "Subiendo" && (
+                        <Check size={13} strokeWidth={4} />
+                      )}
+                    </span>
+                    Subiendo
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`status-check ${
+                      (p as any).estadoCarga === "Listo"
+                        ? "status-check-on"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      const nuevoEstado =
+                        (p as any).estadoCarga === "Listo"
+                          ? ""
+                          : "Listo";
+
+                      actualizarProducto(index, {
+                        estadoCarga: nuevoEstado,
+                      } as any);
+                    }}
+                  >
+                    <span className="status-check-box">
+                      {(p as any).estadoCarga === "Listo" && (
+                        <Check size={13} strokeWidth={4} />
+                      )}
+                    </span>
+                    Listo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <button
+      onClick={() => actualizarEstado(orden.numero, "En Camión")}
+      className="action-btn action-green"
+    >
+      <Truck size={18} />
+      Subir al Camión
+    </button>
+  </>
+)}
 
       {esChofer && orden.estado === "En Camión" && (
         <button
