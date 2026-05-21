@@ -1,6 +1,7 @@
 import BranchCard from "../components/BranchCard";
 import Resumen from "../components/Resumen";
 import type { Orden, Vista } from "../types/orden";
+import { Plus } from "lucide-react";
 
 type Props = {
   vista: Vista;
@@ -23,6 +24,7 @@ function Home({
   ordenesChofer,
   sucursales,
   abrirSucursal,
+  abrirCrearOrden,
   cargando,
   error,
 }: Props) {
@@ -65,6 +67,12 @@ function Home({
         })}
       </div>
 
+          {vista === "bodega" && (
+  <button onClick={abrirCrearOrden} className="primary-btn">
+    <Plus size={18} />
+    Crear Orden
+  </button>
+)}
       {vista === "bodega" && (
         <section className="panel">
           <h3>Estados de Orden</h3>
