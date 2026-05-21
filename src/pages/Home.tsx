@@ -44,6 +44,12 @@ function Home({
               : `${ordenesChofer.length} órdenes en ruta`}
           </p>
         </div>
+        {vista === "bodega" && (
+  <button onClick={abrirCrearOrden} className="primary-btn">
+    <Plus size={18} />
+    Crear Orden
+  </button>
+)}
       </div>
 
       {cargando && <div className="notice-card">Cargando órdenes desde SharePoint...</div>}
@@ -67,12 +73,7 @@ function Home({
         })}
       </div>
 
-          {vista === "bodega" && (
-  <button onClick={abrirCrearOrden} className="primary-btn">
-    <Plus size={18} />
-    Crear Orden
-  </button>
-)}
+          
       {vista === "bodega" && (
         <section className="panel">
           <h3>Estados de Orden</h3>
