@@ -8,7 +8,7 @@ import {
   crearOrdenSharePoint,
   obtenerOrdenes,
   obtenerProductosCatalogo,
-  sincronizarSql,
+ 
 } from "./services/ordenesApi";
 import Home from "./pages/Home";
 import OrdenDetalle from "./pages/OrdenDetalle";
@@ -75,7 +75,7 @@ function App() {
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState<string | null>(null);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [cargando, setCargando] = useState(true);
-  const [sincronizando, setSincronizando] = useState(false);
+
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,28 +144,7 @@ function App() {
     }
   };
 
-  const actualizarSql = async () => {
-    try {
-      setSincronizando(true);
-      setError(null);
-
-      await sincronizarSql();
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-
-      await cargarOrdenes();
-      await cargarProductos();
-
-      setError(null);
-      setOrdenSeleccionada(null);
-      setSucursalSeleccionada(null);
-      setVista("bodega");
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo actualizar desde SQL.");
-    } finally {
-      setSincronizando(false);
-    }
-  };
+ 
 
   useEffect(() => {
     if (!usuarioLogueado) return;
@@ -339,8 +318,8 @@ function App() {
           sucursales={sucursales}
           abrirSucursal={abrirSucursal}
           abrirCrearOrden={() => setModalCrearAbierto(true)}
-          actualizarSql={actualizarSql}
-          sincronizando={sincronizando}
+          
+          
           cargando={cargando}
           error={error}
         />
