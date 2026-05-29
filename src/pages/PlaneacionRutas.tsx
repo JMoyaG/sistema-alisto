@@ -284,15 +284,19 @@ function PlaneacionRutas({ ordenes, abrirOrden }: Props) {
     return null;
   };
 
-  const ordenesParaRuta = useMemo(() => {
-  return (ordenes as OrdenRuta[]).filter(
-    (orden) => orden.estado === "Listo"
-  );
-}, [ordenes]);
+ const ordenesParaRuta = useMemo(() => {
+  return (ordenes as OrdenRuta[]).filter((orden) => {
+    const yaTieneRuta = Boolean(getAsignacionReal(orden));
+
+    return orden.estado === "Listo" || yaTieneRuta;
+  });
+}, [ordenes, asignaciones, guardadasLocal]);
 
   const ordenesSinAsignar = useMemo(() => {
-    return ordenesParaRuta.filter((orden) => !getAsignacionReal(orden));
-  }, [ordenesParaRuta, asignaciones, guardadasLocal]);
+  return ordenesParaRuta.filter(
+    (orden) => orden.estado === "Listo" && !getAsignacionReal(orden)
+  );
+}, [ordenesParaRuta, asignaciones, guardadasLocal]);
 
   const ordenesAsignadasDia = useMemo(() => {
     return ordenesParaRuta.filter((orden) => {
