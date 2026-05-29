@@ -45,7 +45,9 @@ type RutaGuardada = {
   confirmada?: boolean;
 };
 
-const API_URL = "http://localhost:3001/api/sharepoint";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://172.22.1.7:3001/api/sharepoint";
 
 const dias: DiaRuta[] = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const choferes: Chofer[] = ["Sin asignar", "Roberto", "Martin"];
@@ -283,17 +285,10 @@ function PlaneacionRutas({ ordenes, abrirOrden }: Props) {
   };
 
   const ordenesParaRuta = useMemo(() => {
-    return (ordenes as OrdenRuta[]).filter((orden) => {
-      if (orden.estado === "Entregado") return false;
-
-      return (
-        orden.estado === "Listo" ||
-        orden.estado === "Pendiente de Carga" ||
-        orden.estado === "En Camión" ||
-        orden.estado === "En Entrega"
-      );
-    });
-  }, [ordenes]);
+  return (ordenes as OrdenRuta[]).filter(
+    (orden) => orden.estado === "Listo"
+  );
+}, [ordenes]);
 
   const ordenesSinAsignar = useMemo(() => {
     return ordenesParaRuta.filter((orden) => !getAsignacionReal(orden));
