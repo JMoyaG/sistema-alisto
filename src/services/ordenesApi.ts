@@ -379,30 +379,72 @@ export async function obtenerOrdenes(): Promise<Orden[]> {
   const detallesSP: DetalleSP[] = detallesJson.detalles || [];
   const faltantesSP: FaltanteSP[] = faltantesJson.faltantes || [];
 
-  return ordenesSP
-    .map<Orden>((orden) => {
-      const numero = numeroOrden(orden);
+  const ordenesMap = new Map<string, Orden>();
 
-      const productos: Producto[] = detallesSP
-        .filter((detalle) => detallePerteneceAOrden(detalle, orden))
-        .map((detalle) => mapearProducto(detalle, faltantesSP, numero));
+  for (const orden of ordenesSP) {
+    const numero = numeroOrden(orden);
+    if (!numero) continue;
 
-      return {
-        numero,
-        sucursal: orden.Sucursal || "Sin sucursal",
-        cliente: orden.Origen || "SQL",
-        fecha: orden.FechaCreacion || new Date().toISOString(),
-        estado: mapearEstado(orden.Estado),
-        chofer: orden.Chofer || "",
-        camion: orden.Camion || "",
-        diaRuta: orden.DiaRuta || "",
-        confirmada: Boolean(orden.Confirmada),
-        rutaAsignada: orden.DiaRuta || "",
-        productos,
-      };
-    })
-    .filter((orden) => orden.numero);
+    const productos: Producto[] = detallesSP
+      .filter((detalle) => detallePerteneceAOrden(detalle, orden))
+      .map((detalle) => mapearProducto(detalle, faltantesSP, numero));
+
+    const ordenMapeada: Orden = {
+      numero,
+      sucursal: orden.Sucursal || "Sin sucursal",
+      cliente: orden.Origen || "SQL",
+      fecha: orden.FechaCreacion || new Date().toISOString(),
+      estado: mapearEstado(orden.Estado),
+      chofer: orden.Chofer || "",
+      camion: orden.Camion || "",
+      diaRuta: orden.DiaRuta || "",
+      confirmada: Boolean(orden.Confirmada),
+      rutaAsignada: orden.DiaRuta || "",
+      productos,
+    };
+
+    const existente = ordenesMap.get(numero);
+
+    if (!existente) {
+      ordenesMap.set(numero, ordenMapeada);
+      continue;
+    }
+
+    const productosExistentes = existente.productos.length;
+    const productosNuevos = ordenMapeada.productos.length;
+
+    // Si la misma orden viene duplicada, dejamos la versión con más productos.
+    // Esto evita tarjetas repetidas tipo ORD-4081 con 0 productos.
+    if (productosNuevos > productosExistentes) {
+      ordenesMap.set(numero, ordenMapeada);
+      continue;
+    }
+
+    // Si empatan en productos, dejamos la más reciente.
+    const fechaExistente = new Date(existente.fecha).getTime();
+    const fechaNueva = new Date(ordenMapeada.fecha).getTime();
+
+    if (
+      productosNuevos === productosExistentes &&
+      !Number.isNaN(fechaNueva) &&
+      (Number.isNaN(fechaExistente) || fechaNueva > fechaExistente)
+    ) {
+      ordenesMap.set(numero, ordenMapeada);
+    }
+  }
+
+  return Array.from(ordenesMap.values()).sort((a, b) => {
+    const fechaA = new Date(a.fecha).getTime();
+    const fechaB = new Date(b.fecha).getTime();
+
+    if (!Number.isNaN(fechaA) && !Number.isNaN(fechaB)) {
+      return fechaB - fechaA;
+    }
+
+    return Number(b.numero) - Number(a.numero);
+  });
 }
+
 type UsuarioAlistoSP = {
   Usuario?: string;
   Password?: string;
