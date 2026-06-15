@@ -2,11 +2,11 @@ import type { Estado, Orden, Producto } from "../types/orden";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://172.22.1.7:3001/api/sharepoint";
+  `${window.location.protocol}//${window.location.hostname}:3001/api/sharepoint`;
 
 const SYNC_API_URL =
   import.meta.env.VITE_SYNC_API_URL ||
-  "http://172.22.1.7:3001/api/sharepoint";
+  API_URL;
 
 type OrdenSP = {
   spId?: string | number;
