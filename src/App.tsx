@@ -32,25 +32,46 @@ const SUCURSALES_BASE = [
   "SAN GERARDO",
 ];
 
+function ordenarProductosAZ(productos: Producto[]): Producto[] {
+  return [...productos].sort((a, b) => {
+    const nombreA = (a.nombre || a.descripcion || "").trim();
+    const nombreB = (b.nombre || b.descripcion || "").trim();
+
+    const comparacionNombre = nombreA.localeCompare(nombreB, "es", {
+      sensitivity: "base",
+      numeric: true,
+    });
+
+    if (comparacionNombre !== 0) return comparacionNombre;
+
+    return String(a.codigo || "").localeCompare(String(b.codigo || ""), "es", {
+      sensitivity: "base",
+      numeric: true,
+    });
+  });
+}
+
 function normalizarOrdenes(data: Orden[]): Orden[] {
   return data.map((orden) => ({
     ...orden,
-    productos: orden.productos.map((producto) => ({
-      ...producto,
-      cantidad: Number(producto.cantidad || 0),
-      cantidadOriginal: Number(producto.cantidadOriginal ?? producto.cantidad ?? 0),
-      faltante: Boolean(producto.faltante),
-      cantidadFaltante: Number(producto.cantidadFaltante || 0),
-      estadoPreparacion: producto.estadoPreparacion || "",
-      unidadMedida: producto.unidadMedida || "UND",
-      pesoUnitarioKg: inferirPesoUnitarioKg(
-        producto.nombre,
-        producto.descripcion,
-        producto.unidadMedida,
-        producto.pesoUnitarioKg
-      ),
-      codigo: producto.codigo,
-    })),
+    productos: ordenarProductosAZ(
+      orden.productos.map((producto) => ({
+        ...producto,
+        cantidad: Number(producto.cantidad || 0),
+        cantidadOriginal: Number(producto.cantidadOriginal ?? producto.cantidad ?? 0),
+        faltante: Boolean(producto.faltante),
+        cantidadFaltante: Number(producto.cantidadFaltante || 0),
+        estadoPreparacion: producto.estadoPreparacion || "",
+        unidadMedida: producto.unidadMedida || "UND",
+        pesoUnitarioKg: inferirPesoUnitarioKg(
+          producto.nombre,
+          producto.descripcion,
+          producto.unidadMedida,
+          producto.pesoUnitarioKg
+        ),
+        codigo: producto.codigo || "",
+      }))
+    ),
   }));
 }
 
@@ -203,7 +224,7 @@ function App() {
       cliente: "Manual",
       fecha: new Date().toISOString(),
       estado: "Pendiente",
-      productos,
+      productos: ordenarProductosAZ(productos),
     };
 
     try {
@@ -259,14 +280,16 @@ function App() {
   };
 
   const actualizarProductosOrden = (numero: string, productosActualizados: Producto[]) => {
+    const productosOrdenados = ordenarProductosAZ(productosActualizados);
+
     setOrdenes((prev) =>
       prev.map((orden) =>
-        orden.numero === numero ? { ...orden, productos: productosActualizados } : orden
+        orden.numero === numero ? { ...orden, productos: productosOrdenados } : orden
       )
     );
 
     setOrdenSeleccionada((prev) =>
-      prev && prev.numero === numero ? { ...prev, productos: productosActualizados } : prev
+      prev && prev.numero === numero ? { ...prev, productos: productosOrdenados } : prev
     );
   };
 
