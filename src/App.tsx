@@ -270,9 +270,10 @@ function App() {
   const entregarDirecto = async (numeros: string[]) => {
     try {
       setError(null);
-      await Promise.all(
-        numeros.map((numero) => actualizarEstadoSharePoint(numero, "Entregado"))
-      );
+      // Se actualizan una por una para evitar bloqueos/throttling de Microsoft Graph.
+      for (const numero of numeros) {
+        await actualizarEstadoSharePoint(numero, "Entregado");
+      }
       await cargarOrdenes();
       setOrdenSeleccionada(null);
       setSucursalSeleccionada(null);
