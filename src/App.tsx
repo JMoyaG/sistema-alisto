@@ -266,6 +266,24 @@ function App() {
     }
   };
 
+
+  const entregarDirecto = async (numeros: string[]) => {
+    try {
+      setError(null);
+      await Promise.all(
+        numeros.map((numero) => actualizarEstadoSharePoint(numero, "Entregado"))
+      );
+      await cargarOrdenes();
+      setOrdenSeleccionada(null);
+      setSucursalSeleccionada(null);
+      setVista("bodega");
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron marcar las órdenes como entrega directa.");
+      throw err;
+    }
+  };
+
   const confirmarAlisto = async (numero: string, productosFinales: Producto[]) => {
     try {
       setError(null);
@@ -326,6 +344,7 @@ function App() {
           ordenes={ordenesSucursal}
           volver={() => setSucursalSeleccionada(null)}
           abrirOrden={setOrdenSeleccionada}
+          entregarDirecto={entregarDirecto}
         />
       ) : vista === "resumen" ? (
         <ResumenKanban ordenes={ordenes} abrirOrden={setOrdenSeleccionada} />
@@ -340,6 +359,7 @@ function App() {
           ordenesChofer={ordenesChofer}
           sucursales={sucursales}
           abrirSucursal={abrirSucursal}
+          abrirOrden={setOrdenSeleccionada}
           abrirCrearOrden={() => setModalCrearAbierto(true)}
           
           
