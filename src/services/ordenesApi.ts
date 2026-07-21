@@ -15,6 +15,7 @@ type OrdenSP = {
   Sucursal?: string;
   Estado?: string;
   FechaCreacion?: string;
+  FechaEntrega?: string;
   Origen?: string;
   Chofer?: string;
   Camion?: string;
@@ -73,15 +74,6 @@ function mapearEstado(estado?: string): Estado {
 
 function numeroOrden(orden: OrdenSP) {
   return limpiarOrden(orden.IdOrden || orden.Title || orden.spId);
-}
-
-function detallePerteneceAOrden(detalle: DetalleSP, orden: OrdenSP) {
-  const ordenNumero = numeroOrden(orden);
-  const ordenSpId = limpiarOrden(orden.spId);
-  const detalleIdOrden = limpiarOrden(detalle.IdOrden);
-  const detalleLookupId = limpiarOrden(detalle.IdOrdenLookupId);
-
-  return detalleIdOrden === ordenNumero || detalleLookupId === ordenSpId;
 }
 
 function mapearProducto(
@@ -354,30 +346,53 @@ export async function guardarRutaSharePoint(payload: {
   return true;
 }
 
-export async function obtenerOrdenes(): Promise<Orden[]> {
-  const [ordenesRes, detallesRes, faltantesRes] = await Promise.all([
-    fetch(`${API_URL}/ordenes`),
-    fetch(`${API_URL}/detalles`),
-    fetch(`${API_URL}/faltantes`),
-  ]);
+export async function obtenerOrdenes(fechaEntregadas?: string): Promise<Orden[]> {
+  const params = new URLSearchParams();
+  if (fechaEntregadas) {
+    params.set("fechaEntregadas", fechaEntregadas);
+  }
 
-  if (!ordenesRes.ok) {
+  const query = params.toString();
+  const respuesta = await fetch(`${API_URL}/carga${query ? `?${query}` : ""}`);
+
+  if (!respuesta.ok) {
     throw new Error("No se pudieron cargar las órdenes desde SharePoint");
   }
 
-  if (!detallesRes.ok) {
-    throw new Error("No se pudieron cargar los detalles desde SharePoint");
+  const json = await respuesta.json();
+  const ordenesSP: OrdenSP[] = json.ordenes || [];
+  const detallesSP: DetalleSP[] = json.detalles || [];
+  const faltantesSP: FaltanteSP[] = json.faltantes || [];
+
+  const detallesPorOrden = new Map<string, DetalleSP[]>();
+  const detallesPorLookup = new Map<string, DetalleSP[]>();
+  const faltantesPorOrden = new Map<string, FaltanteSP[]>();
+
+  for (const detalle of detallesSP) {
+    const idOrden = limpiarOrden(detalle.IdOrden);
+    const lookupId = limpiarOrden(detalle.IdOrdenLookupId);
+
+    if (idOrden) {
+      const lista = detallesPorOrden.get(idOrden) || [];
+      lista.push(detalle);
+      detallesPorOrden.set(idOrden, lista);
+    }
+
+    if (lookupId) {
+      const lista = detallesPorLookup.get(lookupId) || [];
+      lista.push(detalle);
+      detallesPorLookup.set(lookupId, lista);
+    }
   }
 
-  const ordenesJson = await ordenesRes.json();
-  const detallesJson = await detallesRes.json();
-  const faltantesJson = faltantesRes.ok
-    ? await faltantesRes.json()
-    : { faltantes: [] };
+  for (const faltante of faltantesSP) {
+    const idOrden = limpiarOrden(faltante.IdOrden);
+    if (!idOrden) continue;
 
-  const ordenesSP: OrdenSP[] = ordenesJson.ordenes || [];
-  const detallesSP: DetalleSP[] = detallesJson.detalles || [];
-  const faltantesSP: FaltanteSP[] = faltantesJson.faltantes || [];
+    const lista = faltantesPorOrden.get(idOrden) || [];
+    lista.push(faltante);
+    faltantesPorOrden.set(idOrden, lista);
+  }
 
   const ordenesMap = new Map<string, Orden>();
 
@@ -385,15 +400,32 @@ export async function obtenerOrdenes(): Promise<Orden[]> {
     const numero = numeroOrden(orden);
     if (!numero) continue;
 
-    const productos: Producto[] = detallesSP
-      .filter((detalle) => detallePerteneceAOrden(detalle, orden))
-      .map((detalle) => mapearProducto(detalle, faltantesSP, numero));
+    const ordenSpId = limpiarOrden(orden.spId);
+    const detallesOrden = [
+      ...(detallesPorOrden.get(numero) || []),
+      ...(detallesPorLookup.get(ordenSpId) || []),
+    ];
+
+    const detallesUnicos = new Map<string, DetalleSP>();
+    for (const detalle of detallesOrden) {
+      const clave = String(
+        detalle.spId ||
+          `${detalle.IdOrden || ""}|${detalle.Codigo || ""}|${detalle.Producto || ""}`
+      );
+      detallesUnicos.set(clave, detalle);
+    }
+
+    const faltantesOrden = faltantesPorOrden.get(numero) || [];
+    const productos: Producto[] = Array.from(detallesUnicos.values()).map(
+      (detalle) => mapearProducto(detalle, faltantesOrden, numero)
+    );
 
     const ordenMapeada: Orden = {
       numero,
       sucursal: orden.Sucursal || "Sin sucursal",
       cliente: orden.Origen || "SQL",
       fecha: orden.FechaCreacion || new Date().toISOString(),
+      fechaEntrega: orden.FechaEntrega || "",
       estado: mapearEstado(orden.Estado),
       chofer: orden.Chofer || "",
       camion: orden.Camion || "",
@@ -413,14 +445,11 @@ export async function obtenerOrdenes(): Promise<Orden[]> {
     const productosExistentes = existente.productos.length;
     const productosNuevos = ordenMapeada.productos.length;
 
-    // Si la misma orden viene duplicada, dejamos la versión con más productos.
-    // Esto evita tarjetas repetidas tipo ORD-4081 con 0 productos.
     if (productosNuevos > productosExistentes) {
       ordenesMap.set(numero, ordenMapeada);
       continue;
     }
 
-    // Si empatan en productos, dejamos la más reciente.
     const fechaExistente = new Date(existente.fecha).getTime();
     const fechaNueva = new Date(ordenMapeada.fecha).getTime();
 

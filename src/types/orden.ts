@@ -26,6 +26,7 @@ export type Orden = {
   referencia?: string | number;
   cliente?: string;
   fecha: string;
+  fechaEntrega?: string;
   sucursal: string;
   bodegaOrigen?: string;
   estadoSql?: string;

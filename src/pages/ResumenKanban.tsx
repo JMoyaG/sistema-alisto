@@ -4,6 +4,9 @@ import { estadoClase } from "../utils/estado";
 type Props = {
   ordenes: Orden[];
   abrirOrden: (orden: Orden) => void;
+  fechaEntregadas: string;
+  cambiarFechaEntregadas: (fecha: string) => void;
+  cargando: boolean;
 };
 
 const columnas: Estado[] = [
@@ -14,11 +17,41 @@ const columnas: Estado[] = [
   "Entregado",
 ];
 
-function ResumenKanban({ ordenes, abrirOrden }: Props) {
+function ResumenKanban({
+  ordenes,
+  abrirOrden,
+  fechaEntregadas,
+  cambiarFechaEntregadas,
+  cargando,
+}: Props) {
   return (
     <main className="page">
-      <h2 className="page-title">Resumen Kanban</h2>
-      <p className="page-subtitle">Vista general de órdenes por estado</p>
+      <div className="kanban-title-row">
+        <div>
+          <h2 className="page-title">Resumen Kanban</h2>
+          <p className="page-subtitle">
+            Las órdenes activas se muestran completas. Las entregadas se consultan por día.
+          </p>
+        </div>
+
+        <label className="delivered-date-filter">
+          <span>Entregadas del día</span>
+          <input
+            type="date"
+            value={fechaEntregadas}
+            onChange={(event) => {
+              if (event.target.value) {
+                cambiarFechaEntregadas(event.target.value);
+              }
+            }}
+            aria-label="Fecha de órdenes entregadas"
+          />
+        </label>
+      </div>
+
+      {cargando && (
+        <div className="notice-card">Consultando órdenes de la fecha seleccionada...</div>
+      )}
 
       <div className="kanban-board">
         {columnas.map((estado) => {
@@ -50,6 +83,10 @@ function ResumenKanban({ ordenes, abrirOrden }: Props) {
                     <small>{orden.productos.length} productos</small>
                   </button>
                 ))}
+
+                {estado === "Entregado" && ordenesEstado.length === 0 && !cargando && (
+                  <p className="kanban-empty">No hay entregas para este día.</p>
+                )}
               </div>
             </section>
           );

@@ -245,8 +245,192 @@ async function getItems(listName) {
   return { value };
 }
 
+function escapeODataText(value) {
+  return String(value ?? "").replace(/'/g, "''");
+}
+
+async function getItemsByTextFieldValues(listName, fieldName, values) {
+  const uniqueValues = Array.from(
+    new Set((values || []).map((value) => cleanText(value)).filter(Boolean))
+  );
+
+  if (!uniqueValues.length) {
+    return { value: [] };
+  }
+
+  const siteId = await getSiteId();
+  const listId = await getListId(siteId, listName);
+  const { map } = await getColumnMap(listName);
+  const internalFieldName = map[fieldName]?.internalName || fieldName;
+  const items = [];
+
+  try {
+    // Microsoft Graph limita la complejidad del filtro. Se consultan grupos pequeños
+    // para evitar descargar completa la lista DetalleOrden en cada carga.
+    for (let index = 0; index < uniqueValues.length; index += 15) {
+      const chunk = uniqueValues.slice(index, index + 15);
+      const filter = chunk
+        .map(
+          (value) =>
+            `fields/${internalFieldName} eq '${escapeODataText(value)}'`
+        )
+        .join(" or ");
+
+      let url =
+        `${GRAPH_BASE}/sites/${siteId}/lists/${listId}/items` +
+        `?expand=fields&$top=999&$filter=${encodeURIComponent(filter)}`;
+
+      while (url) {
+        const data = await graphRequest(url, {
+          headers: {
+            Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly",
+          },
+        });
+
+        items.push(...(data.value || []));
+        url = data["@odata.nextLink"] || null;
+      }
+    }
+
+    const uniqueItems = new Map(items.map((item) => [String(item.id), item]));
+    return { value: Array.from(uniqueItems.values()) };
+  } catch (error) {
+    console.log(
+      `Filtro rápido no disponible para ${listName}.${fieldName}; usando respaldo:`,
+      error.message
+    );
+
+    const data = await getItems(listName);
+    const wanted = new Set(uniqueValues);
+
+    return {
+      value: data.value.filter((item) =>
+        wanted.has(cleanText(item.fields?.[internalFieldName] ?? item.fields?.[fieldName]))
+      ),
+    };
+  }
+}
+
+function fechaEnCostaRica(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Costa_Rica",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
+function fechaConsultaValida(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))
+    ? String(value)
+    : fechaEnCostaRica(new Date());
+}
+
+async function getItemsWithFilter(listName, filter) {
+  const siteId = await getSiteId();
+  const listId = await getListId(siteId, listName);
+  const value = [];
+  let url =
+    `${GRAPH_BASE}/sites/${siteId}/lists/${listId}/items` +
+    `?expand=fields&$top=999&$filter=${encodeURIComponent(filter)}`;
+
+  while (url) {
+    const data = await graphRequest(url, {
+      headers: {
+        Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly",
+      },
+    });
+
+    value.push(...(data.value || []));
+    url = data["@odata.nextLink"] || null;
+  }
+
+  return { value };
+}
+
+function rangoUtcCostaRica(fecha) {
+  const inicio = new Date(`${fecha}T06:00:00.000Z`);
+  const fin = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+
+  return {
+    inicio: inicio.toISOString(),
+    fin: fin.toISOString(),
+  };
+}
+
+async function getOrdenesVisibles(fechaEntregadas) {
+  const estadosActivos = [
+    "Pendiente",
+    "Alistando",
+    "Listo",
+    "Pendiente de Carga",
+    "En Camión",
+    "En Entrega",
+  ];
+
+  const activosData = await getItemsByTextFieldValues(
+    "OrdenesAlisto",
+    "Estado",
+    estadosActivos
+  );
+
+  let entregadosData;
+
+  try {
+    const { map } = await getColumnMap("OrdenesAlisto");
+    const estadoField = map.Estado?.internalName || "Estado";
+    const fechaField = map.FechaEntrega?.internalName || "FechaEntrega";
+    const { inicio, fin } = rangoUtcCostaRica(fechaEntregadas);
+
+    const entregadosPorFecha = await getItemsWithFilter(
+      "OrdenesAlisto",
+      `fields/${fechaField} ge '${inicio}' and fields/${fechaField} lt '${fin}'`
+    );
+
+    entregadosData = {
+      value: entregadosPorFecha.value.filter(
+        (item) => cleanText(item.fields?.[estadoField] ?? item.fields?.Estado) === "Entregado"
+      ),
+    };
+  } catch (error) {
+    console.log(
+      "Filtro de FechaEntrega no disponible; usando respaldo por estado:",
+      error.message
+    );
+
+    const todosEntregados = await getItemsByTextFieldValues(
+      "OrdenesAlisto",
+      "Estado",
+      ["Entregado"]
+    );
+
+    entregadosData = {
+      value: todosEntregados.value.filter((item) => {
+        const fields = item.fields || {};
+        const fechaEntrega =
+          fields.FechaEntrega || item.lastModifiedDateTime || fields.FechaCreacion;
+
+        return fechaEnCostaRica(fechaEntrega) === fechaEntregadas;
+      }),
+    };
+  }
+
+  const items = [...activosData.value, ...entregadosData.value];
+  const uniqueItems = new Map(items.map((item) => [String(item.id), item]));
+  return Array.from(uniqueItems.values());
+}
+
 async function findItemByField(listName, fieldName, value) {
-  const data = await getItems(listName);
+  const data = await getItemsByTextFieldValues(listName, fieldName, [value]);
   const { map } = await getColumnMap(listName);
   const internalFieldName = map[fieldName]?.internalName || fieldName;
   const safeValue = String(value);
@@ -531,10 +715,73 @@ router.post("/estado", async (req, res) => {
 
 router.get("/ordenes", async (req, res) => {
   try {
-    const data = await getItems("OrdenesAlisto");
-    const ordenes = data.value.map((item) => ({ spId: item.id, ...item.fields }));
-    res.json({ ok: true, ordenes });
+    const fechaEntregadas = fechaConsultaValida(req.query.fechaEntregadas);
+    const visibles = await getOrdenesVisibles(fechaEntregadas);
+
+    const ordenes = visibles.map((item) => ({
+      spId: item.id,
+      ...item.fields,
+      FechaEntrega:
+        item.fields?.FechaEntrega ||
+        (cleanText(item.fields?.Estado) === "Entregado"
+          ? item.lastModifiedDateTime || ""
+          : ""),
+    }));
+
+    res.json({ ok: true, fechaEntregadas, ordenes });
   } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+router.get("/carga", async (req, res) => {
+  try {
+    const fechaEntregadas = fechaConsultaValida(req.query.fechaEntregadas);
+    const ordenesItems = await getOrdenesVisibles(fechaEntregadas);
+
+    const idsOrden = ordenesItems
+      .map((item) => cleanText(item.fields?.IdOrden ?? item.fields?.Title))
+      .filter(Boolean);
+
+    const [detallesData, faltantesData] = await Promise.all([
+      getItemsByTextFieldValues("DetalleOrden", "IdOrden", idsOrden),
+      getItemsByTextFieldValues("Faltantes", "IdOrden", idsOrden),
+    ]);
+
+    const ordenes = ordenesItems.map((item) => ({
+      spId: item.id,
+      ...item.fields,
+      FechaEntrega:
+        item.fields?.FechaEntrega ||
+        (cleanText(item.fields?.Estado) === "Entregado"
+          ? item.lastModifiedDateTime || ""
+          : ""),
+    }));
+
+    const detalles = detallesData.value.map((item) => ({
+      spId: item.id,
+      ...item.fields,
+    }));
+
+    const faltantes = faltantesData.value.map((item) => ({
+      spId: item.id,
+      ...item.fields,
+    }));
+
+    res.json({
+      ok: true,
+      fechaEntregadas,
+      conteos: {
+        ordenes: ordenes.length,
+        detalles: detalles.length,
+        faltantes: faltantes.length,
+      },
+      ordenes,
+      detalles,
+      faltantes,
+    });
+  } catch (error) {
+    console.error("Error carga optimizada:", error.message);
     res.status(500).json({ ok: false, error: error.message });
   }
 });
@@ -546,33 +793,42 @@ router.post("/sync-sql", async (req, res) => {
     const safeTop = Number.isFinite(top) && top > 0 && top <= 500 ? top : 25;
 
     const result = await pool.request().query(`
-       SELECT DISTINCT
-    CAST(D.idDocEntradaSalida AS varchar(50)) AS IdOrden,
-    CAST(D.NumEntSalida AS varchar(50)) AS Requisicion,
-    BDcat.Descripcion AS Sucursal,
-    D.FechaIngreso AS FechaCreacion,
-    'SQL' AS Origen,
-    'Pendiente' AS Estado
-FROM inDocEntradaSalida D
-INNER JOIN inDocEntSalProdDetalle DP
-    ON D.idDocEntradaSalida = DP.idDocEntradaSalida
-LEFT JOIN inMovEstado ME
-    ON D.idMovEstado = ME.idMovEstado
-LEFT JOIN inBodegas BO
-    ON D.idBodegaOrigen = BO.idBodega
-LEFT JOIN inBodegaCat BOcat
-    ON BO.idBodegaCat = BOcat.idBodegaCat
-LEFT JOIN inBodegas BD
-    ON D.idBodegaDestino = BD.idBodega
-LEFT JOIN inBodegaCat BDcat
-    ON BD.idBodegaCat = BDcat.idBodegaCat
-WHERE
-    DP.Codigo IS NOT NULL
-    AND DP.Cantidad > 0
-    AND ME.Descripcion IN ('Procesado', 'Aprobado')
-    AND BOcat.Descripcion = 'CEDI GRUPO SURCO'
-    AND D.FechaIngreso >= DATEADD(DAY, -2, GETDATE())
-ORDER BY D.FechaIngreso DESC;
+      SELECT
+          CAST(D.idDocEntradaSalida AS varchar(50)) AS referencia,
+          CAST(D.NumEntSalida AS varchar(50)) AS requisicion,
+          DP.Codigo AS codigo,
+          MAX(PR.DescripLarga) AS producto,
+          SUM(ISNULL(DP.Cantidad, 0)) AS cantidad,
+          ISNULL(MAX(PR.Cantidad), 0) AS pesoUnitarioKg,
+          ISNULL(MAX(PR.idUnidadMedida), '') AS medida,
+          MAX(BDcat.Descripcion) AS sucursal,
+          MAX(D.FechaIngreso) AS fecha
+      FROM inDocEntradaSalida D
+      INNER JOIN inDocEntSalProdDetalle DP
+          ON D.idDocEntradaSalida = DP.idDocEntradaSalida
+      LEFT JOIN inProductos PR
+          ON DP.idProducto = PR.idProducto
+      LEFT JOIN inMovEstado ME
+          ON D.idMovEstado = ME.idMovEstado
+      LEFT JOIN inBodegas BO
+          ON D.idBodegaOrigen = BO.idBodega
+      LEFT JOIN inBodegaCat BOcat
+          ON BO.idBodegaCat = BOcat.idBodegaCat
+      LEFT JOIN inBodegas BD
+          ON D.idBodegaDestino = BD.idBodega
+      LEFT JOIN inBodegaCat BDcat
+          ON BD.idBodegaCat = BDcat.idBodegaCat
+      WHERE
+          DP.Codigo IS NOT NULL
+          AND DP.Cantidad > 0
+          AND ME.Descripcion IN ('Procesado', 'Aprobado')
+          AND BOcat.Descripcion = 'CEDI GRUPO SURCO'
+          AND D.FechaIngreso >= DATEADD(DAY, -2, GETDATE())
+      GROUP BY
+          D.idDocEntradaSalida,
+          D.NumEntSalida,
+          DP.Codigo
+      HAVING SUM(ISNULL(DP.Cantidad, 0)) <> 0;
     `);
 
     console.log("Filas SQL encontradas:", result.recordset.length);
@@ -614,13 +870,28 @@ ORDER BY D.FechaIngreso DESC;
     let detallesExistentes = 0;
     const erroresDetalle = [];
 
-    const ordenesData = await getItems("OrdenesAlisto");
-    const detallesData = await getItems("DetalleOrden");
+    const idsOrdenSql = Array.from(ordenesMap.keys());
+    const [ordenesData, detallesData] = await Promise.all([
+      getItemsByTextFieldValues("OrdenesAlisto", "IdOrden", idsOrdenSql),
+      getItemsByTextFieldValues("DetalleOrden", "IdOrden", idsOrdenSql),
+    ]);
+
+    const ordenesPorId = new Map(
+      ordenesData.value.map((item) => [
+        cleanText(item.fields?.IdOrden ?? item.fields?.Title),
+        item,
+      ])
+    );
+
+    const detallesExistentesSet = new Set(
+      detallesData.value.map((item) => {
+        const fields = item.fields || {};
+        return `${cleanText(fields.IdOrden)}|${cleanText(fields.Codigo)}`;
+      })
+    );
 
     for (const orden of ordenesMap.values()) {
-      let ordenSpItem = ordenesData.value.find(
-        (x) => String(x.fields.IdOrden ?? x.fields.Title ?? "") === String(orden.id)
-      );
+      let ordenSpItem = ordenesPorId.get(orden.id);
 
       if (!ordenSpItem) {
         ordenSpItem = await createListItem("OrdenesAlisto", {
@@ -637,22 +908,16 @@ ORDER BY D.FechaIngreso DESC;
           DiaRuta: "",
           Confirmada: false,
         });
+        ordenesPorId.set(orden.id, ordenSpItem);
         ordenesCreadas++;
       } else {
         ordenesExistentes++;
       }
 
       for (const p of orden.productos) {
-        const detalleTitle = `${orden.id} - ${p.codigo}`;
-        const yaExisteDetalle = detallesData.value.some((x) => {
-          const f = x.fields || {};
-          return (
-            String(f.Title ?? "") === detalleTitle ||
-            (String(f.IdOrden ?? "") === orden.id && String(f.Codigo ?? "") === p.codigo)
-          );
-        });
+        const detalleKey = `${orden.id}|${p.codigo}`;
 
-        if (yaExisteDetalle) {
+        if (detallesExistentesSet.has(detalleKey)) {
           detallesExistentes++;
           continue;
         }
@@ -660,6 +925,7 @@ ORDER BY D.FechaIngreso DESC;
         try {
           console.log("Creando detalle:", orden.id, p.codigo);
           await createDetalleSeguro(orden, p, ordenSpItem?.id);
+          detallesExistentesSet.add(detalleKey);
           detallesCreados++;
         } catch (detalleError) {
           erroresDetalle.push({
@@ -995,16 +1261,6 @@ router.get("/faltantes", async (req, res) => {
   }
 });
 
-async function findDetalleByOrdenCodigo(idOrden, codigo) {
-  const detallesData = await getItems("DetalleOrden");
-  return detallesData.value.find((item) => {
-    const f = item.fields || {};
-    return (
-      (String(f.IdOrden || "") === String(idOrden) || String(f.Title || "").startsWith(`${idOrden} -`)) &&
-      String(f.Codigo || "") === String(codigo)
-    );
-  }) || null;
-}
 
 router.post("/alisto", async (req, res) => {
   try {
@@ -1015,6 +1271,16 @@ router.post("/alisto", async (req, res) => {
       return res.status(404).json({ ok: false, error: `No encontré la orden ${idOrden}` });
     }
 
+    const detallesData = await getItemsByTextFieldValues(
+      "DetalleOrden",
+      "IdOrden",
+      [idOrden]
+    );
+
+    const detallesPorCodigo = new Map(
+      detallesData.value.map((item) => [cleanText(item.fields?.Codigo), item])
+    );
+
     let detallesActualizados = 0;
     let faltantesCreados = 0;
 
@@ -1024,7 +1290,7 @@ router.post("/alisto", async (req, res) => {
       const cantidadFaltante = cleanNumber(p.cantidadFaltante);
       const cantidadFinal = Math.max(cantidadOriginal - cantidadFaltante, 0);
 
-      const detalle = await findDetalleByOrdenCodigo(idOrden, codigo);
+      const detalle = detallesPorCodigo.get(codigo);
       if (detalle) {
         await updateListItem("DetalleOrden", detalle.id, {
           Cantidad: cantidadFinal,

@@ -1349,3 +1349,60 @@ body {
   .status-check { min-height: 50px; padding: 8px 10px; }
   .status-check-box { width: 34px; height: 34px; min-width: 34px; }
 }
+
+/* Filtro diario de órdenes entregadas */
+.kanban-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.delivered-date-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 190px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.delivered-date-filter span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.delivered-date-filter input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+}
+
+.kanban-empty {
+  margin: 8px 0;
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+}
+
+@media (max-width: 760px) {
+  .kanban-title-row {
+    flex-direction: column;
+  }
+
+  .delivered-date-filter {
+    width: 100%;
+  }
+}

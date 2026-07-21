@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CrearOrdenModal from "./components/CrearOrdenModal";
 import Header from "./components/Header";
 import Login from "./pages/Login";
@@ -75,6 +75,14 @@ function normalizarOrdenes(data: Orden[]): Orden[] {
   }));
 }
 
+function fechaHoyLocal() {
+  const fecha = new Date();
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function crearNumeroOrden() {
   const fecha = new Date();
   const parteFecha = fecha.toISOString().slice(0, 10).replaceAll("-", "");
@@ -96,6 +104,7 @@ function App() {
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState<string | null>(null);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [fechaEntregadas, setFechaEntregadas] = useState(fechaHoyLocal);
 
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,10 +143,10 @@ function App() {
     };
   }, [usuarioLogueado]);
 
-  const cargarOrdenes = async () => {
+  const cargarOrdenes = useCallback(async (fecha = fechaEntregadas) => {
     try {
       setCargando(true);
-      const data = await obtenerOrdenes();
+      const data = await obtenerOrdenes(fecha);
       const normalizadas = normalizarOrdenes(data);
       setOrdenes(normalizadas);
 
@@ -153,9 +162,9 @@ function App() {
     } finally {
       setCargando(false);
     }
-  };
+  }, [fechaEntregadas]);
 
-  const cargarProductos = async () => {
+  const cargarProductos = useCallback(async () => {
     try {
       const productos = await obtenerProductosCatalogo();
       setProductosCatalogo(productos);
@@ -163,21 +172,28 @@ function App() {
       console.error(err);
       setError("No se pudo cargar el catálogo de productos desde SharePoint.");
     }
-  };
-
- 
+  }, []);
 
   useEffect(() => {
     if (!usuarioLogueado) return;
 
     localStorage.removeItem("sistema-alisto-ordenes-locales");
-    cargarOrdenes();
-    cargarProductos();
-  }, [usuarioLogueado]);
+    const timeoutId = window.setTimeout(() => {
+      void cargarOrdenes(fechaEntregadas);
+    }, 0);
 
-  if (!usuarioLogueado) {
-    return <Login />;
-  }
+    return () => window.clearTimeout(timeoutId);
+  }, [usuarioLogueado, fechaEntregadas, cargarOrdenes]);
+
+  useEffect(() => {
+    if (!usuarioLogueado) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void cargarProductos();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [usuarioLogueado, cargarProductos]);
 
   const ordenesBodega = ordenes.filter(
     (o) =>
@@ -205,6 +221,10 @@ function App() {
   const ordenesSucursal = sucursalSeleccionada
     ? listaVista.filter((orden) => orden.sucursal === sucursalSeleccionada)
     : [];
+
+  if (!usuarioLogueado) {
+    return <Login />;
+  }
 
   const cambiarVista = (nuevaVista: Vista) => {
     setVista(nuevaVista);
@@ -348,7 +368,13 @@ function App() {
           entregarDirecto={entregarDirecto}
         />
       ) : vista === "resumen" ? (
-        <ResumenKanban ordenes={ordenes} abrirOrden={setOrdenSeleccionada} />
+        <ResumenKanban
+          ordenes={ordenes}
+          abrirOrden={setOrdenSeleccionada}
+          fechaEntregadas={fechaEntregadas}
+          cambiarFechaEntregadas={setFechaEntregadas}
+          cargando={cargando}
+        />
       ) : vista === "faltantes" ? (
         <Faltantes ordenes={ordenes} abrirOrden={setOrdenSeleccionada} />
       ) : vista === "rutas" ? (

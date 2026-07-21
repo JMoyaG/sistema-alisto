@@ -17,25 +17,42 @@ app.get("/", (req, res) => {
 app.use("/api/ordenes", ordenesRoutes);
 app.use("/api/sharepoint", sharepointRoutes);
 
-// Sync automático cada 1 minuto
-setInterval(async () => {
+const PORT = process.env.PORT || 3001;
+const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+let syncEnCurso = false;
+
+async function ejecutarSyncAutomatico() {
+  if (syncEnCurso) {
+    console.log("Sync omitido: todavía hay una sincronización en curso");
+    return;
+  }
+
+  syncEnCurso = true;
+
   try {
-    console.log("⏰ Ejecutando sync automático:", new Date());
+    console.log("Ejecutando sync automático:", new Date().toISOString());
 
-    const axios = require("axios");
-
-    await axios.post(
-      "http://localhost:3001/api/sharepoint/sync-sql"
+    const respuesta = await fetch(
+      `http://127.0.0.1:${PORT}/api/sharepoint/sync-sql`,
+      { method: "POST" }
     );
+
+    if (!respuesta.ok) {
+      throw new Error(`HTTP ${respuesta.status}: ${await respuesta.text()}`);
+    }
 
     console.log("Sync completado");
   } catch (error) {
     console.error("Error en sync automático:", error.message);
+  } finally {
+    syncEnCurso = false;
   }
-}, 10000);
-
-const PORT = process.env.PORT || 3001;
+}
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor backend corriendo en http://0.0.0.0:${PORT}`);
+
+  // Primera revisión poco después de iniciar y luego cada 5 minutos.
+  setTimeout(ejecutarSyncAutomatico, 15 * 1000);
+  setInterval(ejecutarSyncAutomatico, SYNC_INTERVAL_MS);
 });
