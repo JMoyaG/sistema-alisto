@@ -168,9 +168,11 @@ function App() {
     try {
       const productos = await obtenerProductosCatalogo();
       setProductosCatalogo(productos);
+      return true;
     } catch (err) {
       console.error(err);
       setError("No se pudo cargar el catálogo de productos desde SharePoint.");
+      return false;
     }
   }, []);
 
@@ -185,15 +187,14 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [usuarioLogueado, fechaEntregadas, cargarOrdenes]);
 
-  useEffect(() => {
-    if (!usuarioLogueado) return;
+  const abrirModalCrearOrden = async () => {
+    if (productosCatalogo.length === 0) {
+      const cargado = await cargarProductos();
+      if (!cargado) return;
+    }
 
-    const timeoutId = window.setTimeout(() => {
-      void cargarProductos();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [usuarioLogueado, cargarProductos]);
+    setModalCrearAbierto(true);
+  };
 
   const ordenesBodega = ordenes.filter(
     (o) =>
@@ -251,8 +252,7 @@ function App() {
       setGuardandoOrden(true);
       setError(null);
       await crearOrdenSharePoint(nuevaOrden);
-      await cargarOrdenes();
-      await cargarProductos();
+      setOrdenes((prev) => normalizarOrdenes([...prev, nuevaOrden]));
       setVista("bodega");
       setSucursalSeleccionada(null);
       setOrdenSeleccionada(null);
@@ -269,7 +269,31 @@ function App() {
     try {
       setError(null);
       await actualizarEstadoSharePoint(numero, nuevoEstado);
-      await cargarOrdenes();
+
+      const fechaEntrega =
+        nuevoEstado === "Entregado" ? new Date().toISOString() : undefined;
+
+      setOrdenes((prev) =>
+        prev.flatMap((orden) => {
+          if (orden.numero !== numero) return [orden];
+
+          const actualizada: Orden = {
+            ...orden,
+            estado: nuevoEstado,
+            ...(fechaEntrega ? { fechaEntrega } : {}),
+          };
+
+          if (
+            nuevoEstado === "Entregado" &&
+            fechaEntregadas !== fechaHoyLocal()
+          ) {
+            return [];
+          }
+
+          return [actualizada];
+        })
+      );
+
       setOrdenSeleccionada(null);
       setSucursalSeleccionada(null);
 
@@ -294,7 +318,19 @@ function App() {
       for (const numero of numeros) {
         await actualizarEstadoSharePoint(numero, "Entregado");
       }
-      await cargarOrdenes();
+
+      const numerosSet = new Set(numeros);
+      const fechaEntrega = new Date().toISOString();
+
+      setOrdenes((prev) =>
+        prev.flatMap((orden) => {
+          if (!numerosSet.has(orden.numero)) return [orden];
+          if (fechaEntregadas !== fechaHoyLocal()) return [];
+
+          return [{ ...orden, estado: "Entregado", fechaEntrega }];
+        })
+      );
+
       setOrdenSeleccionada(null);
       setSucursalSeleccionada(null);
       setVista("bodega");
@@ -309,7 +345,16 @@ function App() {
     try {
       setError(null);
       await confirmarAlistoSharePoint(numero, productosFinales);
-      await cargarOrdenes();
+      const productosOrdenados = ordenarProductosAZ(productosFinales);
+
+      setOrdenes((prev) =>
+        prev.map((orden) =>
+          orden.numero === numero
+            ? { ...orden, estado: "Listo", productos: productosOrdenados }
+            : orden
+        )
+      );
+
       setOrdenSeleccionada(null);
       setSucursalSeleccionada(null);
     } catch (err) {
@@ -387,7 +432,7 @@ function App() {
           sucursales={sucursales}
           abrirSucursal={abrirSucursal}
           abrirOrden={setOrdenSeleccionada}
-          abrirCrearOrden={() => setModalCrearAbierto(true)}
+          abrirCrearOrden={() => void abrirModalCrearOrden()}
           
           
           cargando={cargando}
